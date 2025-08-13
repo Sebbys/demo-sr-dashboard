@@ -277,6 +277,16 @@ export default function DashboardPage() {
               <div className="h-6 w-px bg-gray-800" />
               <span className="text-2xl font-bold text-white">Vitality Dashboard</span>
             </div>
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard/global">
+                <Button
+                  variant="outline"
+                  className="bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white"
+                >
+                  Global Data View
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>

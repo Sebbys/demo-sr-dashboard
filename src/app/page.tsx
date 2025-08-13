@@ -45,14 +45,6 @@ export default function HomePage() {
                   Dashboard
                 </Button>
               </Link>
-              <Link href="/dashboard/global">
-                <Button
-                  variant="outline"
-                  className="bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white"
-                >
-                  Global View
-                </Button>
-              </Link>
               <Button className="bg-white text-black hover:bg-gray-200 border-0">Get Started</Button>
             </div>
           </div>
