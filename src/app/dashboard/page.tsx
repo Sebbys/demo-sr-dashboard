@@ -1,10 +1,8 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Upload, FileText, Users, ArrowLeft, Search, Filter, Download, BarChart3, User } from "lucide-react"
+import { Upload, FileText, Users, Search, Filter, Download, BarChart3, User, Zap, Target, Star, TrendingUp } from "lucide-react"
 import Link from "next/link"
 
 interface Member {
@@ -147,7 +145,7 @@ export default function DashboardPage() {
       })
 
       if (!generateResponse.ok) {
-        const errorData = await generateResponse.json().catch(() => ({}))
+        const errorData = await generateResponse.json().catch(() => {})
 
         if (generateResponse.status === 408) {
           console.warn("⏰ AI plan generation timed out - this can happen with large datasets")
@@ -249,210 +247,316 @@ export default function DashboardPage() {
   const stats = useMemo(() => {
     if (displayMembers.length === 0) return null
 
-    const avgBMI = displayMembers.reduce((sum, m) => sum + m.BMI, 0) / displayMembers.length
-    const avgVO2 = displayMembers.reduce((sum, m) => sum + m.VO2max, 0) / displayMembers.length
-    const programTypes = [...new Set(displayMembers.map((m) => m.Program_Type))]
-    const clusters = [...new Set(displayMembers.map((m) => m.Predicted_Cluster))]
+    try {
+      // Filter out invalid members and ensure all required properties exist
+      const validMembers = displayMembers.filter(member =>
+        member &&
+        typeof member.BMI === 'number' &&
+        typeof member.VO2max === 'number' &&
+        typeof member.Program_Type === 'string' &&
+        typeof member.Predicted_Cluster === 'number'
+      )
 
-    return {
-      totalMembers: displayMembers.length,
-      avgBMI: avgBMI.toFixed(1),
-      avgVO2: avgVO2.toFixed(1),
-      programTypes,
-      clusters: clusters.sort((a, b) => a - b),
+      if (validMembers.length === 0) return null
+
+      const avgBMI = validMembers.reduce((sum, m) => sum + m.BMI, 0) / validMembers.length
+      const avgVO2 = validMembers.reduce((sum, m) => sum + m.VO2max, 0) / validMembers.length
+      const programTypes = [...new Set(validMembers.map((m) => m.Program_Type))]
+      const clusters = [...new Set(validMembers.map((m) => m.Predicted_Cluster))]
+
+      return {
+        totalMembers: validMembers.length,
+        avgBMI: isNaN(avgBMI) ? '0.0' : avgBMI.toFixed(1),
+        avgVO2: isNaN(avgVO2) ? '0.0' : avgVO2.toFixed(1),
+        programTypes: programTypes.filter(type => type && type.trim() !== ''),
+        clusters: clusters.filter(cluster => typeof cluster === 'number' && !isNaN(cluster)).sort((a, b) => a - b),
+      }
+    } catch (error) {
+      console.error('Error calculating stats:', error)
+      return null
     }
   }, [displayMembers])
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Navigation */}
-      <nav className="border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="flex items-center text-gray-400 hover:text-white transition-colors">
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back
-              </Link>
-              <div className="h-6 w-px bg-gray-800" />
-              <span className="text-2xl font-bold text-white">Vitality Dashboard</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard/global">
-                <Button
-                  variant="outline"
-                  className="bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white"
-                >
-                  Global Data View
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-background">
         {displayMembers.length === 0 ? (
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold text-white mb-4">Upload Member Data</h1>
-              <p className="text-gray-400">
+              <h1 className="instrument-serif text-4xl font-bold text-foreground mb-4">Upload Member Data</h1>
+              <p className="jetbrains-mono text-muted-foreground text-sm">
                 Upload a CSV file with member fitness data to generate personalized workout programs
               </p>
             </div>
 
             {/* Upload Area */}
             <div
-              className={`border-2 border-dashed p-12 text-center transition-colors ${
-                dragActive ? "border-white bg-gray-900/20" : "border-gray-800 hover:border-gray-700"
+              className={`relative border-2 border-dashed p-8 sm:p-12 text-center transition-all-smooth rounded-xl shadow-sm hover:shadow-md ${
+                dragActive
+                  ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
+                  : file
+                    ? "border-green-400 bg-green-950/20"
+                    : "border-border hover:border-primary/50 hover:bg-muted/20"
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
+              role="region"
+              aria-label="File upload area"
+              tabIndex={0}
             >
-              <Upload className="h-16 w-16 text-gray-600 mx-auto mb-6" />
-              <h3 className="text-xl font-semibold text-white mb-2">{file ? file.name : "Drop your CSV file here"}</h3>
-              <p className="text-gray-400 mb-6">
-                {loading
-                  ? "Processing CSV and generating programs..."
-                  : generatingPlans
-                    ? "Generating AI-powered personalized plans... (this may take up to 5 minutes)"
-                    : file
-                      ? "File ready to upload"
-                      : "or click to browse files"}
-              </p>
+              {/* Background decoration */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-xl opacity-50" />
 
-              <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" id="file-upload" />
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <label htmlFor="file-upload">
-                  <Button
-                    variant="outline"
-                    className="bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white cursor-pointer"
-                    asChild
-                  >
-                    <span>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Choose File
-                    </span>
-                  </Button>
-                </label>
-
-                {file && (
-                  <Button
-                    onClick={handleUpload}
-                    disabled={loading || generatingPlans}
-                    className="bg-white text-black hover:bg-gray-200"
-                  >
-                    {loading ? "Processing CSV..." : generatingPlans ? "Generating Plans..." : "Generate Programs"}
-                  </Button>
-                )}
-              </div>
-
-              {(loading || generatingPlans) && (
-                <div className="mt-4 text-sm text-gray-400">
-                  {loading && "Step 1/2: Processing member data..."}
-                  {generatingPlans &&
-                    "Step 2/2: AI is creating personalized workout and nutrition plans... (up to 5 minutes)"}
+              <div className="relative z-10">
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-6 rounded-full flex items-center justify-center transition-all-smooth ${
+                  file
+                    ? "bg-green-900/30 text-green-400"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {loading || generatingPlans ? (
+                    <div className="animate-spin w-8 h-8 sm:w-10 sm:h-10 border-2 border-current border-t-transparent rounded-full" />
+                  ) : (
+                    <Upload className="w-8 h-8 sm:w-10 sm:h-10" />
+                  )}
                 </div>
-              )}
+
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                  {file ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="text-green-600">✓</span>
+                      {file.name}
+                    </span>
+                  ) : (
+                    "Drop your CSV file here"
+                  )}
+                </h3>
+
+                <p className="text-sm sm:text-base text-muted-foreground mb-6 max-w-md mx-auto">
+                  {loading
+                    ? "Processing CSV and generating programs..."
+                    : generatingPlans
+                      ? "Generating AI-powered personalized plans... (this may take up to 5 minutes)"
+                      : file
+                        ? `File size: ${(file.size / 1024).toFixed(1)} KB • Ready to upload`
+                        : "or click to browse files • Supports CSV format only"}
+                </p>
+
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="file-upload"
+                  aria-describedby="file-requirements"
+                />
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+                  <label htmlFor="file-upload">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="bg-transparent hover:bg-muted/70 hover:scale-105 hover:shadow-md transition-all-smooth cursor-pointer min-w-[140px] transform"
+                      disabled={loading || generatingPlans}
+                      asChild
+                    >
+                      <span>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Choose File
+                      </span>
+                    </Button>
+                  </label>
+
+                  {file && (
+                    <Button
+                      onClick={handleUpload}
+                      disabled={loading || generatingPlans}
+                      size="lg"
+                      className="bg-primary text-primary-foreground hover:bg-primary/80 hover:scale-105 transition-all-smooth min-w-[140px] shadow-lg hover:shadow-2xl transform"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border border-current border-t-transparent rounded-full mr-2" />
+                          Processing...
+                        </>
+                      ) : generatingPlans ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border border-current border-t-transparent rounded-full mr-2" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-4 w-4 mr-2" />
+                          Generate Programs
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {/* Progress indicator */}
+                {(loading || generatingPlans) && (
+                  <div className="mt-6">
+                    <div className="w-full max-w-xs mx-auto bg-muted rounded-full h-2 mb-2">
+                      <div className="bg-primary h-2 rounded-full animate-pulse transition-all duration-300" style={{width: generatingPlans ? '75%' : '45%'}} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {loading && "Step 1/2: Processing member data..."}
+                      {generatingPlans && "Step 2/2: AI is creating personalized workout and nutrition plans..."}
+                    </p>
+                  </div>
+                )}
+
+                {/* File requirements */}
+                <p id="file-requirements" className="text-xs text-muted-foreground mt-4">
+                  CSV should include: MemberID, BMI, BodyFat_Percent, VO2max, EnduranceScore, FlexibilityScore, WeeklyWorkouts
+                </p>
+              </div>
             </div>
 
             {/* CSV Format Info */}
-            <div className="mt-12 border border-gray-800 p-6 bg-gray-900/20">
-              <h3 className="text-lg font-semibold text-white mb-4">Required CSV Format</h3>
-              <div className="text-sm text-gray-400 space-y-2">
+            <div className="mt-12 border border-border p-6 bg-card rounded-lg shadow-sm">
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                <FileText className="h-5 w-5 mr-2 text-primary" />
+                Required CSV Format
+              </h3>
+              <div className="text-sm text-muted-foreground space-y-3">
                 <p>Your CSV file should include these columns:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>MemberID</li>
-                  <li>BMI</li>
-                  <li>BodyFat_Percent</li>
-                  <li>VO2max</li>
-                  <li>EnduranceScore (0-100)</li>
-                  <li>FlexibilityScore (0-100)</li>
-                  <li>WeeklyWorkouts</li>
-                </ul>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex items-center p-2 bg-muted/50 rounded-md">
+                    <div className="w-2 h-2 bg-primary rounded-full mr-3 flex-shrink-0" />
+                    <span className="font-mono text-xs">MemberID</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Required</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-muted/50 rounded-md">
+                    <div className="w-2 h-2 bg-primary rounded-full mr-3 flex-shrink-0" />
+                    <span className="font-mono text-xs">BMI</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Number</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-muted/50 rounded-md">
+                    <div className="w-2 h-2 bg-primary rounded-full mr-3 flex-shrink-0" />
+                    <span className="font-mono text-xs">BodyFat_Percent</span>
+                    <span className="text-xs text-muted-foreground ml-auto">0-100</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-muted/50 rounded-md">
+                    <div className="w-2 h-2 bg-primary rounded-full mr-3 flex-shrink-0" />
+                    <span className="font-mono text-xs">VO2max</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Number</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-muted/50 rounded-md">
+                    <div className="w-2 h-2 bg-primary rounded-full mr-3 flex-shrink-0" />
+                    <span className="font-mono text-xs">EnduranceScore</span>
+                    <span className="text-xs text-muted-foreground ml-auto">0-100</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-muted/50 rounded-md">
+                    <div className="w-2 h-2 bg-primary rounded-full mr-3 flex-shrink-0" />
+                    <span className="font-mono text-xs">FlexibilityScore</span>
+                    <span className="text-xs text-muted-foreground ml-auto">0-100</span>
+                  </div>
+                  <div className="flex items-center p-2 bg-muted/50 rounded-md sm:col-span-2">
+                    <div className="w-2 h-2 bg-primary rounded-full mr-3 flex-shrink-0" />
+                    <span className="font-mono text-xs">WeeklyWorkouts</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Integer ≥ 0</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         ) : (
-          <div>
+          <div className="space-y-8">
+            {/* Stats Cards */}
             {stats && (
-              <div className="mb-8">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                  <div className="border border-gray-800 p-6 bg-gray-900/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm">Total Members</p>
-                        <p className="text-2xl font-bold text-white">{stats.totalMembers}</p>
-                      </div>
-                      <Users className="h-8 w-8 text-gray-600" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div className="border border-border p-4 sm:p-6 bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="jetbrains-mono text-muted-foreground text-xs font-medium tracking-tight">Total Members</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{stats.totalMembers}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Users className="h-6 w-6 text-primary" />
                     </div>
                   </div>
-                  <div className="border border-gray-800 p-6 bg-gray-900/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm">Avg BMI</p>
-                        <p className="text-2xl font-bold text-white">{stats.avgBMI}</p>
-                      </div>
-                      <BarChart3 className="h-8 w-8 text-gray-600" />
+                </div>
+                <div className="border border-border p-4 sm:p-6 bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="jetbrains-mono text-muted-foreground text-xs font-medium tracking-tight">Avg BMI</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{stats.avgBMI}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="h-6 w-6 text-blue-500" />
                     </div>
                   </div>
-                  <div className="border border-gray-800 p-6 bg-gray-900/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm">Avg VO2 Max</p>
-                        <p className="text-2xl font-bold text-white">{stats.avgVO2}</p>
-                      </div>
-                      <BarChart3 className="h-8 w-8 text-gray-600" />
+                </div>
+                <div className="border border-border p-4 sm:p-6 bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="jetbrains-mono text-muted-foreground text-xs font-medium tracking-tight">Avg VO2 Max</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{stats.avgVO2}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-6 w-6 text-green-500" />
                     </div>
                   </div>
-                  <div className="border border-gray-800 p-6 bg-gray-900/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-gray-400 text-sm">Program Types</p>
-                        <p className="text-2xl font-bold text-white">{stats.programTypes.length}</p>
-                      </div>
-                      <Filter className="h-8 w-8 text-gray-600" />
+                </div>
+                <div className="border border-border p-4 sm:p-6 bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="jetbrains-mono text-muted-foreground text-xs font-medium tracking-tight">Program Types</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{stats.programTypes.length}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                      <Filter className="h-6 w-6 text-purple-500" />
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
+            {/* Header Section */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
               <div>
-                <h1 className="text-4xl font-bold text-white mb-2">Member Programs</h1>
-                <p className="text-gray-400">
-                  <Users className="h-4 w-4 inline mr-2" />
-                  {filteredMembers.length} of {displayMembers.length} members shown
+                <h1 className="instrument-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Member Programs</h1>
+                <div className="text-muted-foreground flex items-center flex-wrap gap-2">
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-2" />
+                    <span className="jetbrains-mono text-sm">
+                      {filteredMembers.length} of {displayMembers.length} members shown
+                    </span>
+                  </div>
                   {detailedMembers.length > 0 && (
-                    <span className="ml-2 text-green-400">• Detailed plans generated</span>
+                    <div className="flex items-center">
+                      <Star className="w-4 h-4 mr-2 text-green-500" />
+                      <span className="jetbrains-mono text-sm text-green-600 dark:text-green-400 font-medium">AI plans generated</span>
+                    </div>
                   )}
-                </p>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                <div className="relative">
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              {/* Controls */}
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative flex-1 sm:flex-none">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Search members..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 bg-gray-900 border border-gray-800 text-white placeholder-gray-400 focus:border-white focus:outline-none"
+                    className="w-full sm:w-64 pl-10 pr-4 py-2 bg-card border border-border text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none rounded-lg transition-colors"
                   />
                 </div>
 
                 <select
                   value={selectedCluster || ""}
                   onChange={(e) => setSelectedCluster(e.target.value ? Number(e.target.value) : null)}
-                  className="px-4 py-2 bg-gray-900 border border-gray-800 text-white focus:border-white focus:outline-none"
+                  className="px-4 py-2 bg-card border border-border text-foreground focus:border-primary focus:outline-none rounded-lg transition-colors"
+                  disabled={!stats || !stats.clusters || stats.clusters.length === 0}
                 >
                   <option value="">All Clusters</option>
-                  {stats?.clusters.map((cluster) => (
-                    <option key={cluster} value={cluster}>
+                  {stats?.clusters?.map((cluster) => (
+                    <option key={`cluster-${cluster}`} value={cluster}>
                       Cluster {cluster}
                     </option>
                   ))}
@@ -461,11 +565,12 @@ export default function DashboardPage() {
                 <select
                   value={selectedProgramType || ""}
                   onChange={(e) => setSelectedProgramType(e.target.value || null)}
-                  className="px-4 py-2 bg-gray-900 border border-gray-800 text-white focus:border-white focus:outline-none"
+                  className="px-4 py-2 bg-card border border-border text-foreground focus:border-primary focus:outline-none rounded-lg transition-colors"
+                  disabled={!stats || !stats.programTypes || stats.programTypes.length === 0}
                 >
                   <option value="">All Programs</option>
-                  {stats?.programTypes.map((type) => (
-                    <option key={type} value={type}>
+                  {stats?.programTypes?.map((type) => (
+                    <option key={`program-${type}`} value={type}>
                       {type}
                     </option>
                   ))}
@@ -474,10 +579,11 @@ export default function DashboardPage() {
                 <Button
                   onClick={handleExport}
                   variant="outline"
-                  className="bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white"
+                  className="bg-transparent hover:bg-muted/70 hover:scale-105 hover:shadow-md transition-all-smooth transform"
+                  disabled={displayMembers.length === 0}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Export
+                  <span className="hidden sm:inline">Export</span>
                 </Button>
 
                 <Button
@@ -491,79 +597,99 @@ export default function DashboardPage() {
                     localStorage.removeItem("memberPlans")
                   }}
                   variant="outline"
-                  className="bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white"
+                  className="bg-transparent hover:bg-muted/70 hover:scale-105 hover:shadow-md transition-all-smooth transform"
                 >
-                  Upload New File
+                  <span className="hidden sm:inline">Upload New File</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </div>
             </div>
 
             {/* Members Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {filteredMembers.map((member) => (
-                <div key={member.MemberID} className="bg-gray-900 border border-gray-800 p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-semibold text-white">Member {member.MemberID}</h3>
-                    <span className="text-sm text-gray-400 bg-gray-800 px-2 py-1">
-                      Cluster {member.Predicted_Cluster}
-                    </span>
+                <article key={member.MemberID} className="bg-card border border-border p-4 sm:p-6 rounded-xl shadow-sm hover:shadow-md transition-all-smooth hover:border-primary/20 group" role="article" aria-label={`Member ${member.MemberID} information`}>
+                  <header className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-1">Member {member.MemberID}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="jetbrains-mono text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border">
+                          Cluster {member.Predicted_Cluster}
+                        </span>
+                        {detailedMembers.length > 0 && (
+                          <span className="jetbrains-mono text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded-full">
+                            AI Plan
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </header>
+
+                  <div className="mb-4 p-4 bg-gradient-to-br from-primary/10 to-primary/20 rounded-lg border border-primary/30">
+                    <div className="mb-3">
+                      <h4 className="text-base sm:text-lg font-semibold text-foreground mb-2 flex items-center">
+                        <Target className="h-4 w-4 mr-2 text-primary" />
+                        {member.Program_Type}
+                      </h4>
+                      <p className="jetbrains-mono text-muted-foreground text-xs leading-relaxed">{member.Details}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center justify-between p-2 bg-background/20 rounded-md">
+                        <span className="jetbrains-mono text-muted-foreground text-xs font-medium">BMI:</span>
+                        <span className="text-foreground font-semibold">{member.BMI}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-background/20 rounded-md">
+                        <span className="jetbrains-mono text-muted-foreground text-xs font-medium">Body Fat:</span>
+                        <span className="text-foreground font-semibold">{member.BodyFat_Percent}%</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-background/20 rounded-md">
+                        <span className="jetbrains-mono text-muted-foreground text-xs font-medium">VO2 Max:</span>
+                        <span className="text-foreground font-semibold">{member.VO2max}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-background/20 rounded-md">
+                        <span className="jetbrains-mono text-muted-foreground text-xs font-medium">Workouts:</span>
+                        <span className="text-foreground font-semibold">{member.WeeklyWorkouts}/week</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mb-4">
-                    <h4 className="text-lg font-medium text-white mb-2">{member.Program_Type}</h4>
-                    <p className="text-gray-400 text-sm">{member.Details}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-400">BMI:</span>
-                      <span className="text-white ml-2">{member.BMI}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Body Fat:</span>
-                      <span className="text-white ml-2">{member.BodyFat_Percent}%</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">VO2 Max:</span>
-                      <span className="text-white ml-2">{member.VO2max}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Weekly Workouts:</span>
-                      <span className="text-white ml-2">{member.WeeklyWorkouts}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-gray-800">
-                    <Link href={generatingPlans ? "#" : `/plan/${member.MemberID}`}>
+                  <footer className="pt-4 border-t border-border">
+                    <Link href={generatingPlans ? "#" : `/plan/${member.MemberID}`} className="w-full">
                       <Button
                         variant="outline"
                         size="sm"
                         disabled={generatingPlans}
-                        className={`bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white ${
-                          generatingPlans ? "opacity-50 cursor-not-allowed" : ""
+                        className={`w-full bg-transparent transition-all-smooth focus:outline-none focus:ring-2 focus:ring-primary/20 group-hover:bg-primary group-hover:text-primary-foreground hover:scale-105 transform ${
+                          generatingPlans ? "opacity-50 cursor-not-allowed" : "hover:bg-primary hover:text-primary-foreground hover:shadow-md"
                         }`}
+                        aria-label={generatingPlans ? "Generating plan..." : `View detailed plan for Member ${member.MemberID}`}
                       >
                         {generatingPlans ? (
                           <>
-                            <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent mr-2"></div>
-                            Generating...
+                            <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent mr-2" aria-hidden="true"></div>
+                            Generating Plan...
                           </>
                         ) : (
                           <>
                             <User className="h-3 w-3 mr-2" />
-                            View Plan
+                            View Detailed Plan
                           </>
                         )}
                       </Button>
                     </Link>
-                  </div>
-                </div>
+                  </footer>
+                </article>
               ))}
             </div>
 
             {filteredMembers.length === 0 && displayMembers.length > 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-400">No members match your current filters.</p>
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No matching members</h3>
+                <p className="jetbrains-mono text-muted-foreground mb-6 text-sm">No members match your current filters. Try adjusting your search criteria.</p>
                 <Button
                   onClick={() => {
                     setSearchTerm("")
@@ -571,8 +697,9 @@ export default function DashboardPage() {
                     setSelectedProgramType(null)
                   }}
                   variant="outline"
-                  className="mt-4 bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white"
+                  className="bg-transparent hover:bg-muted/70 hover:scale-105 hover:shadow-md transition-all-smooth transform"
                 >
+                  <Filter className="h-4 w-4 mr-2" />
                   Clear Filters
                 </Button>
               </div>
@@ -583,3 +710,4 @@ export default function DashboardPage() {
     </div>
   )
 }
+

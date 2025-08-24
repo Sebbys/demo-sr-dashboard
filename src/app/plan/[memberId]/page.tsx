@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Calendar, Target, Activity, Utensils, TrendingUp, Dumbbell, Download } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ArrowLeft, Calendar, Target, Activity, Utensils, TrendingUp, Dumbbell, Download, User, BarChart3, Zap, Heart, Clock, Flame, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 
@@ -668,10 +672,13 @@ export default function PlanPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-white border-t-transparent animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading personalized plan...</p>
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center" role="status" aria-live="polite">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" aria-hidden="true" />
+          <div className="space-y-2">
+            <p className="text-foreground font-medium">Loading personalized plan...</p>
+            <p className="text-muted-foreground text-sm">Preparing your wellness journey</p>
+          </div>
         </div>
       </div>
     )
@@ -679,11 +686,17 @@ export default function PlanPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-400 mb-4">{error}</p>
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center" role="alert" aria-live="assertive">
+        <div className="text-center space-y-4 max-w-md mx-auto px-4">
+          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="text-destructive font-medium mb-2">Unable to load plan</p>
+            <p className="text-muted-foreground text-sm">{error}</p>
+          </div>
           <Link href="/dashboard">
-            <Button className="bg-white text-black hover:bg-gray-200">Back to Dashboard</Button>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-primary/20 transition-all duration-200">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
           </Link>
         </div>
       </div>
@@ -692,11 +705,11 @@ export default function PlanPage() {
 
   if (!member) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-400 mb-4">Member not found</p>
+          <p className="text-muted-foreground mb-4">Member not found</p>
           <Link href="/dashboard">
-            <Button className="bg-white text-black hover:bg-gray-200">Back to Dashboard</Button>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Back to Dashboard</Button>
           </Link>
         </div>
       </div>
@@ -704,287 +717,530 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="new-container relative !border-none sm:!border-dashed bg-background">
       {/* Navigation */}
-      <nav className="border-b border-gray-800">
+      <nav className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm" role="navigation" aria-label="Plan navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="flex items-center text-gray-400 hover:text-white transition-colors">
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back to Dashboard
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link
+                href="/dashboard"
+                className="flex items-center text-muted-foreground hover:text-foreground transition-colors duration-200 px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+                aria-label="Return to dashboard"
+              >
+                <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline ml-2">Back to Dashboard</span>
+                <span className="sm:hidden ml-1">Back</span>
               </Link>
-              <div className="h-6 w-px bg-gray-800" />
-              <span className="text-2xl font-bold text-white">Member {member.MemberID}</span>
+              <div className="h-6 w-px bg-border hidden sm:block" aria-hidden="true" />
+              <div className="flex items-center space-x-2">
+                <h1 className="text-base sm:text-lg font-semibold text-foreground">Member {member.MemberID}</h1>
+                {member.Biometrics_Plan && (
+                  <span className="hidden sm:inline text-xs bg-green-900/30 text-green-400 px-2 py-1 rounded-full">
+                    AI Plan
+                  </span>
+                )}
+              </div>
             </div>
+            <Button
+              onClick={generatePDF}
+              size="sm"
+              variant="outline"
+              className="hover:bg-primary hover:text-primary-foreground transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm hover:shadow-md"
+              aria-label="Export plan as PDF document"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Export PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </Button>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Personalized Wellness Plan</h1>
-          <div className="flex items-center space-x-4 text-gray-400">
-            <span className="bg-gray-800 px-3 py-1 text-sm">Cluster {member.Predicted_Cluster}</span>
-            <span className="bg-gray-800 px-3 py-1 text-sm">{member.Program_Type}</span>
+        <header className="mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-3">Personalized Wellness Plan</h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
+            <Badge variant="secondary" className="px-3 py-1 text-sm font-medium">
+              Cluster {member.Predicted_Cluster}
+            </Badge>
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm font-medium">
+              {member.Program_Type}
+            </Badge>
+            {member.Biometrics_Plan && (
+              <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm font-medium">
+                AI-Generated Plan
+              </Badge>
+            )}
           </div>
-        </div>
+          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed max-w-3xl">
+            Comprehensive fitness and nutrition program tailored for your goals and current fitness level
+          </p>
+        </header>
 
-        {/* Overview Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          {/* Current Metrics */}
-          <div className="border border-gray-800 p-6 bg-gray-900/20">
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <Activity className="h-5 w-5 mr-2" />
-              Current Metrics
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-400">BMI</span>
-                <span className="text-white">{member.BMI}</span>
+                 {/* Overview Grid */}
+         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
+           {/* Current Metrics */}
+           <Card className="lg:col-span-2 xl:col-span-2 hover:shadow-md transition-shadow duration-200 border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center text-base sm:text-lg">
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
+                Current Metrics
+              </CardTitle>
+              <CardDescription className="text-sm">Your current fitness measurements</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <div className="p-3 bg-red-950/20 rounded-lg border border-red-800 hover:bg-red-900/30 transition-colors duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Heart className="h-4 w-4 text-red-500 flex-shrink-0" />
+                        <span className="text-sm font-medium">BMI</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-red-900/30 text-red-400 self-start sm:self-auto">{member.BMI}</Badge>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-blue-950/20 rounded-lg border border-blue-800 hover:bg-blue-900/30 transition-colors duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Target className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        <span className="text-sm font-medium">Body Fat</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-blue-900/30 text-blue-400 self-start sm:self-auto">{member.BodyFat_Percent}%</Badge>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-yellow-950/20 rounded-lg border border-yellow-800 hover:bg-yellow-900/30 transition-colors duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Zap className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                        <span className="text-sm font-medium">VO2 Max</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-yellow-900/30 text-yellow-400 self-start sm:self-auto">{member.VO2max}</Badge>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="p-3 bg-green-950/20 rounded-lg border border-green-800 hover:bg-green-900/30 transition-colors duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Activity className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <span className="text-sm font-medium">Endurance</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-900/30 text-green-400 self-start sm:self-auto">{member.EnduranceScore}/100</Badge>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-purple-950/20 rounded-lg border border-purple-800 hover:bg-purple-900/30 transition-colors duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Target className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                        <span className="text-sm font-medium">Flexibility</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-purple-900/30 text-purple-400 self-start sm:self-auto">{member.FlexibilityScore}/100</Badge>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-orange-950/20 rounded-lg border border-orange-800 hover:bg-orange-900/30 transition-colors duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                        <span className="text-sm font-medium">Workouts</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-orange-900/30 text-orange-400 self-start sm:self-auto">{member.WeeklyWorkouts}/week</Badge>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Body Fat</span>
-                <span className="text-white">{member.BodyFat_Percent}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">VO2 Max</span>
-                <span className="text-white">{member.VO2max}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Endurance Score</span>
-                <span className="text-white">{member.EnduranceScore}/100</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Flexibility Score</span>
-                <span className="text-white">{member.FlexibilityScore}/100</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Weekly Workouts</span>
-                <span className="text-white">{member.WeeklyWorkouts}</span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {member.Nutrition_Plan && (
-            <div className="border border-gray-800 p-6 bg-gray-900/20">
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                <Utensils className="h-5 w-5 mr-2" />
-                Daily Nutrition
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Calories</span>
-                  <span className="text-white">{member.Nutrition_Plan.summary.total_calories}</span>
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-lg">
+                  <Utensils className="h-5 w-5 mr-2 text-primary" />
+                  Daily Nutrition
+                </CardTitle>
+                <CardDescription>Your macro and calorie targets</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  <div className="p-3 bg-gradient-to-r from-orange-950/20 to-orange-900/20 rounded-lg border border-orange-800 hover:from-orange-900/30 hover:to-orange-800/30 transition-colors duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Flame className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                        <span className="font-medium text-orange-100">Calories</span>
+                      </div>
+                      <Badge className="bg-orange-600 hover:bg-orange-700 text-white transition-colors duration-200 self-start sm:self-auto">
+                        {member.Nutrition_Plan.summary.total_calories}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center p-2 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors duration-200">
+                      <div className="text-xs text-muted-foreground mb-1">Protein</div>
+                      <div className="font-semibold text-sm">{member.Nutrition_Plan.summary.macro_targets_g.protein}g</div>
+                    </div>
+                    <div className="text-center p-2 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors duration-200">
+                      <div className="text-xs text-muted-foreground mb-1">Carbs</div>
+                      <div className="font-semibold text-sm">{member.Nutrition_Plan.summary.macro_targets_g.carbs}g</div>
+                    </div>
+                    <div className="text-center p-2 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors duration-200">
+                      <div className="text-xs text-muted-foreground mb-1">Fat</div>
+                      <div className="font-semibold text-sm">{member.Nutrition_Plan.summary.macro_targets_g.fat}g</div>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-blue-950/20 rounded-lg border border-blue-800 hover:bg-blue-900/30 transition-colors duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="h-4 w-4 rounded-full bg-blue-500 flex-shrink-0" />
+                        <span className="font-medium text-blue-100">Hydration</span>
+                      </div>
+                      <Badge className="bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200 self-start sm:self-auto">
+                        {(member.Nutrition_Plan.summary.hydration_ml / 1000).toFixed(1)}L
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Protein</span>
-                  <span className="text-white">{member.Nutrition_Plan.summary.macro_targets_g.protein}g</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Carbs</span>
-                  <span className="text-white">{member.Nutrition_Plan.summary.macro_targets_g.carbs}g</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Fat</span>
-                  <span className="text-white">{member.Nutrition_Plan.summary.macro_targets_g.fat}g</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Water</span>
-                  <span className="text-white">{(member.Nutrition_Plan.summary.hydration_ml / 1000).toFixed(1)}L</span>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {member.Biometrics_Plan && (
-            <div className="border border-gray-800 p-6 bg-gray-900/20">
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                <Target className="h-5 w-5 mr-2" />
-                Training Guidelines
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <span className="text-gray-400 block mb-1">Warm-up:</span>
-                  <span className="text-white">{member.Biometrics_Plan.training_guidelines.warmup}</span>
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-lg">
+                  <Target className="h-5 w-5 mr-2 text-primary" />
+                  Training Guidelines
+                </CardTitle>
+                <CardDescription>Essential training principles</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors duration-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="h-3 w-3 rounded-full bg-green-500" />
+                      <span className="text-sm font-semibold text-green-900 dark:text-green-100">Warm-up</span>
+                    </div>
+                    <p className="text-xs text-green-800 dark:text-green-200 leading-relaxed">
+                      {member.Biometrics_Plan.training_guidelines.warmup}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="h-3 w-3 rounded-full bg-blue-500" />
+                      <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">Cool-down</span>
+                    </div>
+                    <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                      {member.Biometrics_Plan.training_guidelines.cooldown}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors duration-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="h-3 w-3 rounded-full bg-amber-500" />
+                      <span className="text-sm font-semibold text-amber-900 dark:text-amber-100">Injury Prevention</span>
+                    </div>
+                    <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                      {member.Biometrics_Plan.training_guidelines.injury_prevention}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-gray-400 block mb-1">Cool-down:</span>
-                  <span className="text-white">{member.Biometrics_Plan.training_guidelines.cooldown}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block mb-1">Injury Prevention:</span>
-                  <span className="text-white">{member.Biometrics_Plan.training_guidelines.injury_prevention}</span>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
         {/* Program Details */}
-        <div className="mb-12">
-          <div className="border border-gray-800 p-6 bg-gray-900/20">
-            <h3 className="text-xl font-semibold text-white mb-4">Program Overview</h3>
-            <p className="text-gray-400 mb-4">{member.Details}</p>
+        <Card className="mb-8 hover:shadow-md transition-shadow duration-200">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Target className="h-5 w-5 mr-2 text-primary" />
+              Program Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground leading-relaxed mb-4 text-base">{member.Details}</p>
             {member.Biometrics_Plan?.personal_note && (
-              <div className="border-t border-gray-800 pt-4 mt-4">
-                <h4 className="text-sm font-semibold text-white mb-2">Personal Note:</h4>
-                <p className="text-gray-400 text-sm">{member.Biometrics_Plan.personal_note}</p>
-              </div>
+              <>
+                <Separator className="my-4" />
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 hover:bg-primary/10 transition-colors duration-200">
+                  <h4 className="flex items-center text-sm font-semibold text-primary mb-2">
+                    <User className="h-4 w-4 mr-2" />
+                    Personal Note
+                  </h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{member.Biometrics_Plan.personal_note}</p>
+                </div>
+              </>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {member.Biometrics_Plan?.weekly_workout_plan && (
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-white mb-8 flex items-center">
-              <Dumbbell className="h-8 w-8 mr-3" />
-              Weekly Workout Plan
-            </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-foreground flex items-center">
+                <Dumbbell className="h-6 w-6 mr-3 text-primary" />
+                Weekly Workout Plan
+              </h2>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                {member.Biometrics_Plan.weekly_workout_plan.length} Days
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {member.Biometrics_Plan.weekly_workout_plan.map((day) => (
-                <div key={day.day} className="border border-gray-800 p-6 bg-gray-900/20">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-white">{day.day}</h3>
-                  </div>
-                  <p className="text-gray-400 text-sm mb-4">{day.focus}</p>
-                  <div className="space-y-3">
-                    {day.sessions.map((session, index) => (
-                      <div key={index} className="border-l-2 border-gray-800 pl-3">
-                        <div className="font-medium text-white text-sm">{session.type}</div>
-                        <div className="text-gray-400 text-xs">
-                          {session.duration_min} min • {session.intensity}
+                <Card key={day.day} className="hover:shadow-md transition-shadow duration-200" role="article" aria-label={`Workout plan for ${day.day}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-semibold">{day.day}</CardTitle>
+                      <Badge variant="secondary" className="text-xs">
+                        {day.sessions.length} {day.sessions.length === 1 ? 'Session' : 'Sessions'}
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs">{day.focus}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      {day.sessions.map((session, index) => (
+                        <div key={index} className="p-3 bg-muted/50 rounded-lg border-l-2 border-primary/30 hover:bg-muted/70 hover:border-l-4 transition-colors duration-200">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-sm">{session.type}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {session.intensity}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center text-xs text-muted-foreground mb-2">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {session.duration_min} minutes
+                          </div>
+                          {session.notes && (
+                            <p className="text-xs text-muted-foreground italic leading-relaxed">
+                              {session.notes}
+                            </p>
+                          )}
                         </div>
-                        {session.notes && <div className="text-gray-500 text-xs mt-1">{session.notes}</div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
         )}
 
         {member.Nutrition_Plan?.daily_meal_schedule && (
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-white mb-8 flex items-center">
-              <Utensils className="h-8 w-8 mr-3" />
-              Daily Meal Plan
-            </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-foreground flex items-center">
+                <Utensils className="h-6 w-6 mr-3 text-primary" />
+                Daily Meal Plan
+              </h2>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                {member.Nutrition_Plan.daily_meal_schedule.length} Meals
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {member.Nutrition_Plan.daily_meal_schedule.map((meal, index) => (
-                <div key={index} className="border border-gray-800 p-6 bg-gray-900/20">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-white">{meal.meal_type}</h3>
-                    <span className="text-gray-400 text-sm">{meal.time}</span>
-                  </div>
-                  <div className="space-y-2 mb-4">
-                    {meal.items.map((item, itemIndex) => (
-                      <div key={itemIndex} className="text-gray-400 text-sm">
-                        • {item}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t border-gray-800 pt-3 text-xs">
-                    <div className="flex justify-between text-gray-400">
-                      <span>Calories: {meal.calories}</span>
-                      <span>
-                        P: {meal.macros.protein_g}g | C: {meal.macros.carbs_g}g | F: {meal.macros.fat_g}g
-                      </span>
+                <Card key={index} className="hover:shadow-md transition-shadow duration-200" role="article" aria-label={`Meal plan for ${meal.meal_type} at ${meal.time}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-semibold">{meal.meal_type}</CardTitle>
+                      <Badge variant="secondary" className="text-xs">{meal.time}</Badge>
                     </div>
-                  </div>
-                </div>
+                    <CardDescription className="text-xs">
+                      {meal.calories} calories
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        {meal.items.map((item, itemIndex) => (
+                          <div key={itemIndex} className="flex items-start text-sm">
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 mr-2 flex-shrink-0" />
+                            <span className="text-muted-foreground">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <Separator />
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="text-center p-2 bg-red-50 dark:bg-red-950/20 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors duration-200">
+                          <div className="font-semibold text-red-700 dark:text-red-300">P</div>
+                          <div className="text-red-600 dark:text-red-400">{meal.macros.protein_g}g</div>
+                        </div>
+                        <div className="text-center p-2 bg-blue-50 dark:bg-blue-950/20 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-200">
+                          <div className="font-semibold text-blue-700 dark:text-blue-300">C</div>
+                          <div className="text-blue-600 dark:text-blue-400">{meal.macros.carbs_g}g</div>
+                        </div>
+                        <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded-md hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors duration-200">
+                          <div className="font-semibold text-yellow-700 dark:text-yellow-300">F</div>
+                          <div className="text-yellow-600 dark:text-yellow-400">{meal.macros.fat_g}g</div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-            {member.Nutrition_Plan.personal_note && (
-              <div className="mt-6 border border-gray-800 p-6 bg-gray-900/20">
-                <h4 className="text-lg font-semibold text-white mb-2">Nutrition Notes:</h4>
-                <p className="text-gray-400">{member.Nutrition_Plan.personal_note}</p>
-                {member.Nutrition_Plan.summary.supplements_note && (
-                  <div className="mt-4 pt-4 border-t border-gray-800">
-                    <h5 className="text-sm font-semibold text-white mb-2">Supplements:</h5>
-                    <p className="text-gray-400 text-sm">{member.Nutrition_Plan.summary.supplements_note}</p>
-                  </div>
-                )}
-              </div>
+            {(member.Nutrition_Plan.personal_note || member.Nutrition_Plan.summary.supplements_note) && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg">
+                    <Utensils className="h-5 w-5 mr-2 text-primary" />
+                    Nutrition Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {member.Nutrition_Plan.personal_note && (
+                    <p className="text-muted-foreground leading-relaxed mb-4">{member.Nutrition_Plan.personal_note}</p>
+                  )}
+                  {member.Nutrition_Plan.summary.supplements_note && (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <h5 className="flex items-center text-sm font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                          <div className="h-4 w-4 rounded-full bg-amber-500 mr-2" />
+                          Supplements
+                        </h5>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">{member.Nutrition_Plan.summary.supplements_note}</p>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             )}
           </div>
         )}
 
         {/* Progress Tracking */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-white mb-8 flex items-center">
-            <TrendingUp className="h-8 w-8 mr-3" />
-            Progress Tracking
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-gray-800 p-6 bg-gray-900/20">
-              <h3 className="text-lg font-semibold text-white mb-4">Weekly Check-ins</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 border border-gray-800">
-                  <span className="text-gray-400">Week 1</span>
-                  <span className="text-white">Baseline Measurements</span>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-foreground flex items-center">
+              <TrendingUp className="h-6 w-6 mr-3 text-primary" />
+              Progress Tracking
+            </h2>
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-300 dark:border-green-800">
+              Active Plan
+            </Badge>
+          </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-lg">
+                  <Calendar className="h-5 w-5 mr-2 text-primary" />
+                  Weekly Check-ins
+                </CardTitle>
+                <CardDescription>Track your progress milestones</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors duration-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center">
+                        <span className="text-white text-sm font-semibold">1</span>
+                      </div>
+                      <span className="font-medium">Week 1</span>
+                    </div>
+                    <Badge className="bg-green-600 hover:bg-green-700 text-white transition-colors duration-200">
+                      Baseline Measurements
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border hover:bg-muted/70 transition-colors duration-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                        <span className="text-muted-foreground text-sm font-semibold">2</span>
+                      </div>
+                      <span className="font-medium text-muted-foreground">Week 2</span>
+                    </div>
+                    <Badge variant="secondary">Pending</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border hover:bg-muted/70 transition-colors duration-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                        <span className="text-muted-foreground text-sm font-semibold">3</span>
+                      </div>
+                      <span className="font-medium text-muted-foreground">Week 3</span>
+                    </div>
+                    <Badge variant="secondary">Pending</Badge>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between p-3 border border-gray-800">
-                  <span className="text-gray-400">Week 2</span>
-                  <span className="text-gray-500">Pending</span>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center text-lg">
+                  <BarChart3 className="h-5 w-5 mr-2 text-primary" />
+                  Key Metrics to Track
+                </CardTitle>
+                <CardDescription>Monitor these important indicators</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  <div className="flex items-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors duration-200">
+                    <div className="h-2 w-2 bg-blue-500 rounded-full mr-3" />
+                    <span className="text-sm font-medium mr-auto">Body weight</span>
+                    <Badge variant="outline" className="text-xs">Weekly</Badge>
+                  </div>
+                  <div className="flex items-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors duration-200">
+                    <div className="h-2 w-2 bg-green-500 rounded-full mr-3" />
+                    <span className="text-sm font-medium mr-auto">Body fat percentage</span>
+                    <Badge variant="outline" className="text-xs">Bi-weekly</Badge>
+                  </div>
+                  <div className="flex items-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors duration-200">
+                    <div className="h-2 w-2 bg-purple-500 rounded-full mr-3" />
+                    <span className="text-sm font-medium mr-auto">Workout performance</span>
+                    <Badge variant="outline" className="text-xs">Per session</Badge>
+                  </div>
+                  <div className="flex items-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors duration-200">
+                    <div className="h-2 w-2 bg-yellow-500 rounded-full mr-3" />
+                    <span className="text-sm font-medium mr-auto">Energy levels</span>
+                    <Badge variant="outline" className="text-xs">Daily</Badge>
+                  </div>
+                  <div className="flex items-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors duration-200">
+                    <div className="h-2 w-2 bg-indigo-500 rounded-full mr-3" />
+                    <span className="text-sm font-medium mr-auto">Sleep quality</span>
+                    <Badge variant="outline" className="text-xs">Daily</Badge>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between p-3 border border-gray-800">
-                  <span className="text-gray-400">Week 3</span>
-                  <span className="text-gray-500">Pending</span>
-                </div>
-              </div>
-            </div>
-            <div className="border border-gray-800 p-6 bg-gray-900/20">
-              <h3 className="text-lg font-semibold text-white mb-4">Key Metrics to Track</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center text-gray-400">
-                  <div className="w-2 h-2 bg-white mr-3"></div>
-                  Body weight (weekly)
-                </div>
-                <div className="flex items-center text-gray-400">
-                  <div className="w-2 h-2 bg-white mr-3"></div>
-                  Body fat percentage (bi-weekly)
-                </div>
-                <div className="flex items-center text-gray-400">
-                  <div className="w-2 h-2 bg-white mr-3"></div>
-                  Workout performance
-                </div>
-                <div className="flex items-center text-gray-400">
-                  <div className="w-2 h-2 bg-white mr-3"></div>
-                  Energy levels (daily)
-                </div>
-                <div className="flex items-center text-gray-400">
-                  <div className="w-2 h-2 bg-white mr-3"></div>
-                  Sleep quality (daily)
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button className="bg-white text-black hover:bg-gray-200">
-            <Calendar className="h-4 w-4 mr-2" />
-            Schedule Session
-          </Button>
-          <Button
-            onClick={generatePDF}
-            variant="outline"
-            className="bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download Plan PDF
-          </Button>
-          <Button
-            variant="outline"
-            className="bg-transparent border-gray-800 text-gray-400 hover:text-white hover:border-white"
-          >
-            Contact Trainer
-          </Button>
-        </div>
+        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 hover:from-primary/10 hover:to-primary/15 transition-colors duration-200">
+          <CardContent className="p-6">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-semibold text-foreground mb-3">Ready to Start Your Journey?</h3>
+              <p className="text-muted-foreground text-base leading-relaxed max-w-2xl mx-auto">Take the next step with your personalized wellness plan and begin your transformation today</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                className="bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-md hover:shadow-lg"
+                aria-label="Schedule a training session"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Schedule Session
+              </Button>
+              <Button
+                onClick={generatePDF}
+                variant="outline"
+                className="bg-background hover:bg-muted transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm hover:shadow-md"
+                aria-label="Download plan as PDF document"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Plan PDF
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-background hover:bg-muted transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm hover:shadow-md"
+                aria-label="Contact your personal trainer"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Contact Trainer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

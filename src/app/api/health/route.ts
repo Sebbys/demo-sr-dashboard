@@ -2,6 +2,13 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
+    if (!process.env.FITNESS_API_URL) {
+      return NextResponse.json(
+        { status: "error", message: "FITNESS_API_URL not configured on the server" },
+        { status: 500 },
+      )
+    }
+
     const response = await fetch(`${process.env.FITNESS_API_URL}/health`)
 
     if (!response.ok) {
@@ -11,6 +18,7 @@ export async function GET() {
     const healthData = await response.json()
     return NextResponse.json(healthData)
   } catch (error) {
+    console.error("Health route error:", error)
     return NextResponse.json(
       {
         status: "error",

@@ -1,65 +1,82 @@
+import { Skeleton } from "@/components/ui/skeleton";
+import { Database, Activity, BarChart3, Users } from "lucide-react";
+
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Navigation Skeleton */}
-      <nav className="border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="h-5 w-12 bg-gray-800 animate-pulse rounded"></div>
-              <div className="h-6 w-px bg-gray-800"></div>
-              <div className="h-6 w-48 bg-gray-800 animate-pulse rounded"></div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header Skeleton */}
+        {/* Header */}
         <div className="mb-8">
-          <div className="h-10 w-64 bg-gray-800 animate-pulse rounded mb-4"></div>
-          <div className="h-4 w-96 bg-gray-800 animate-pulse rounded"></div>
-        </div>
-
-        {/* Controls Skeleton */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="h-4 w-32 bg-gray-800 animate-pulse rounded"></div>
-          <div className="flex gap-4">
-            <div className="h-10 w-24 bg-gray-800 animate-pulse rounded"></div>
-            <div className="h-10 w-24 bg-gray-800 animate-pulse rounded"></div>
+          <div className="h-8 w-64 bg-transparent">
+            <Skeleton className="h-8 w-64" />
+          </div>
+          <div className="text-muted-foreground mt-2">
+            <Skeleton className="h-4 w-96" />
           </div>
         </div>
 
-        {/* Table Skeleton */}
-        <div className="border border-gray-800 bg-gray-900/20 overflow-hidden">
-          {/* Table Header */}
-          <div className="border-b border-gray-800 bg-gray-900/40">
-            <div className="grid grid-cols-4 gap-4 p-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-4 bg-gray-800 animate-pulse rounded"></div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Table Rows */}
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((row) => (
-            <div key={row} className="border-b border-gray-800 last:border-b-0">
-              <div className="grid grid-cols-4 gap-4 p-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-4 bg-gray-800 animate-pulse rounded"></div>
-                ))}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {[
+            { label: "Total Records", icon: Database },
+            { label: "Current Page", icon: Activity },
+            { label: "Total Pages", icon: BarChart3 },
+            { label: "Records / Page", icon: Users },
+          ].map((s, idx) => (
+            <div
+              key={idx}
+              className="border border-border p-6 bg-card rounded-lg shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-muted-foreground text-sm">
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">
+                    <Skeleton className="h-6 w-20" />
+                  </div>
+                </div>
+                <s.icon className="h-8 w-8 text-muted-foreground" />
               </div>
             </div>
           ))}
         </div>
 
-        {/* Pagination Skeleton */}
-        <div className="flex justify-center items-center gap-4 mt-8">
-          <div className="h-10 w-20 bg-gray-800 animate-pulse rounded"></div>
-          <div className="h-4 w-32 bg-gray-800 animate-pulse rounded"></div>
-          <div className="h-10 w-20 bg-gray-800 animate-pulse rounded"></div>
+        {/* List / Cards skeleton */}
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="border border-border bg-card p-6 rounded-lg shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }).map((__, j) => (
+                    <div key={j} className="space-y-1">
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center space-x-3 ml-6">
+                  <Skeleton className="h-8 w-8" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pagination skeleton */}
+        <div className="flex justify-center mt-8">
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-10 w-20" />
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

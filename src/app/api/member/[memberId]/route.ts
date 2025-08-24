@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function GET(request: NextRequest, { params }: { params: { memberId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ memberId: string }> }) {
   try {
-    const { memberId } = params
+    const { memberId } = await params
 
     if (!memberId) {
       return NextResponse.json({ error: "Member ID is required" }, { status: 400 })
